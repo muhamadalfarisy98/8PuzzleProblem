@@ -10,11 +10,24 @@ var (
 	// Rules - matrix direction
 	DIRECTIONS = map[string][2]int{"U": {-1, 0}, "D": {1, 0}, "L": {0, -1}, "R": {0, 1}}
 
+	UP    = "UP"
+	RIGHT = "RIGHT"
+	DOWN  = "DOWN"
+	LEFT  = "LEFT"
+
+	ActionMoves = map[string]string{
+		"U": UP,
+		"R": RIGHT,
+		"L": LEFT,
+		"D": DOWN,
+	}
+
 	// State space
 	START = [][]int{{1, 0, 2}, {4, 5, 3}, {7, 8, 6}}
 	END   = [][]int{{1, 2, 3}, {4, 5, 6}, {7, 8, 0}}
 
-	// unicode for draw puzzle in command promt or terminal
+	// unicode for draw puzzle in command prompt or terminal
+	// source : https://pkg.go.dev/github.com/appgate-sdp-int/tabulate#section-readme (grid format)
 	leftDownAngle  = '\u2514'
 	rightDownAngle = '\u2518'
 	rightUpAngle   = '\u2510'
@@ -26,17 +39,24 @@ var (
 	rightJunction  = '\u2524'
 	leftJunction   = '\u251C'
 
+	dash = '\u2500'
+
 	// source : https://pkg.go.dev/github.com/pborman/ansi
 	// Each escape sequence is represented by a string constant and a Sequence structure
-	boldText = "\033[1m"
-	barStyle = "\033[1m\033[97m|\033[0m\033[0m"
-	dash     = '\u2500'
 
+	// text style
+	boldText       = "\033[1m"
+	boldTextYellow = "\033[1;33m"
+
+	barStyle = "\033[1m\033[97m|\033[0m\033[0m"
+
+	// line style
 	firstLine  = "\033[1m\033[97m" + string(leftUpAngle) + string(dash) + string(dash) + string(dash) + string(topJunction) + string(dash) + string(dash) + string(dash) + string(topJunction) + string(dash) + string(dash) + string(dash) + string(rightUpAngle) + "\033[0m\033[0m"
 	middleLine = "\033[1m\033[97m" + string(leftJunction) + string(dash) + string(dash) + string(dash) + string(middleJunction) + string(dash) + string(dash) + string(dash) + string(middleJunction) + string(dash) + string(dash) + string(dash) + string(rightJunction) + "\033[0m\033[0m"
 	lastLine   = "\033[1m\033[97m" + string(leftDownAngle) + string(dash) + string(dash) + string(dash) + string(bottomJunction) + string(dash) + string(dash) + string(dash) + string(bottomJunction) + string(dash) + string(dash) + string(dash) + string(rightDownAngle) + "\033[0m\033[0m"
 )
 
+// Node - stores state space
 type Node struct {
 	currentNode  [][]int
 	previousNode [][]int
@@ -45,10 +65,33 @@ type Node struct {
 	dir          string
 }
 
+// f - calculates heuristic function
 func (n Node) f() int {
 	return n.g + n.h
 }
 
+// getAdjNode - gets possible adjacent nodes
+func (n Node) getAdjNode() []Node {
+	var listNode []Node
+	emptyPosRow, emptyPosCol := getPos(n.currentNode, 0)
+
+	for key, direction := range DIRECTIONS {
+		newPosRow, newPosCol := emptyPosRow+direction[0], emptyPosCol+direction[1]
+		if newPosRow >= 0 && newPosRow < len(n.currentNode) && newPosCol >= 0 && newPosCol < len(n.currentNode[0]) {
+			newState := make([][]int, len(n.currentNode))
+			for i := range n.currentNode {
+				newState[i] = make([]int, len(n.currentNode[i]))
+				copy(newState[i], n.currentNode[i])
+			}
+			newState[emptyPosRow][emptyPosCol] = n.currentNode[newPosRow][newPosCol]
+			newState[newPosRow][newPosCol] = 0
+			listNode = append(listNode, Node{currentNode: newState, previousNode: n.currentNode, g: n.g + 1, h: euclideanCost(newState), dir: key})
+		}
+	}
+	return listNode
+}
+
+// getPos - get element's current position on 2D array
 func getPos(currentState [][]int, element int) (int, int) {
 	for row := 0; row < len(currentState); row++ {
 		for col := 0; col < len(currentState[0]); col++ {
@@ -60,6 +103,7 @@ func getPos(currentState [][]int, element int) (int, int) {
 	return -1, -1
 }
 
+// euclideanCost - calculates total distance between current state and goal state
 func euclideanCost(currentState [][]int) int {
 	cost := 0
 	for row := 0; row < len(currentState); row++ {
@@ -71,26 +115,7 @@ func euclideanCost(currentState [][]int) int {
 	return cost
 }
 
-func getAdjNode(node Node) []Node {
-	var listNode []Node
-	emptyPosRow, emptyPosCol := getPos(node.currentNode, 0)
-
-	for key, direction := range DIRECTIONS {
-		newPosRow, newPosCol := emptyPosRow+direction[0], emptyPosCol+direction[1]
-		if newPosRow >= 0 && newPosRow < len(node.currentNode) && newPosCol >= 0 && newPosCol < len(node.currentNode[0]) {
-			newState := make([][]int, len(node.currentNode))
-			for i := range node.currentNode {
-				newState[i] = make([]int, len(node.currentNode[i]))
-				copy(newState[i], node.currentNode[i])
-			}
-			newState[emptyPosRow][emptyPosCol] = node.currentNode[newPosRow][newPosCol]
-			newState[newPosRow][newPosCol] = 0
-			listNode = append(listNode, Node{currentNode: newState, previousNode: node.currentNode, g: node.g + 1, h: euclideanCost(newState), dir: key})
-		}
-	}
-	return listNode
-}
-
+// buildPath - build closed(visited node) set
 func buildPath(closedSet map[string]Node) []map[string]interface{} {
 	node := closedSet[fmt.Sprintf("%v", END)]
 	branch := make([]map[string]interface{}, 0)
@@ -105,6 +130,7 @@ func buildPath(closedSet map[string]Node) []map[string]interface{} {
 	return branch
 }
 
+// reverseBranch - helps to reverse array
 func reverseBranch(branches []map[string]interface{}) {
 	for i := 0; i < len(branches)/2; i++ {
 		j := len(branches) - i - 1
@@ -112,6 +138,7 @@ func reverseBranch(branches []map[string]interface{}) {
 	}
 }
 
+// getLowestCostNode - get minimum cost node path
 func getLowestCostNode(openSet map[string]Node) Node {
 	var testNode Node
 	bestF := math.MaxInt64
@@ -125,11 +152,12 @@ func getLowestCostNode(openSet map[string]Node) Node {
 	return testNode
 }
 
+// printPuzzle - print array node
 func printPuzzle(array [][]int) {
 	for idx, row := range array {
 		fmt.Print(barStyle)
 		for _, val := range row {
-			//  kalau dia blank space
+			// blank tiles
 			if val == 0 {
 				fmt.Print("\033[103m   \033[0m\033[97m|\033[0m")
 				continue
@@ -223,14 +251,17 @@ func main() {
 			break
 		}
 
-		adjNode := getAdjNode(testNode)
+		adjNode := testNode.getAdjNode()
 		for _, node := range adjNode {
 			nodeStr := fmt.Sprintf("%v", node.currentNode)
+
+			// check duplicate or existing node
 			if _, ok = closedSet[nodeStr]; ok || (ok && openSet[nodeStr].f() < node.f()) {
 				continue
 			}
 			openSet[nodeStr] = node
 		}
+		// removes visited node
 		delete(openSet, fmt.Sprintf("%v", testNode.currentNode))
 	}
 
@@ -238,28 +269,23 @@ func main() {
 	br := buildPath(closedSet)
 
 	fmt.Println()
-	fmt.Println("  | Start State |")
+	fmt.Println(boldText, "  | Start State |")
 	for _, b := range br {
 		if b["dir"].(string) != "" {
 			letter := ""
-			switch b["dir"].(string) {
-			case "U":
-				letter = "UP"
-			case "R":
-				letter = "RIGHT"
-			case "L":
-				letter = "LEFT"
-			case "D":
-				letter = "DOWN"
+			if val, ok := ActionMoves[b["dir"].(string)]; ok {
+				letter = val
 			}
-			fmt.Printf(" -- | Move = %s | --\n", letter)
+			fmt.Printf(" Move => %s \n", (boldTextYellow + letter))
 		}
 		fmt.Println(firstLine)
+
 		// di casting karna dia interface
 		printPuzzle(b["node"].([][]int))
 		fmt.Println()
 	}
-	fmt.Println("-- Achieve Goal State --")
+	fmt.Println(boldText, "-- Achieved Goal State --")
 	fmt.Println("Total steps:", len(br)-1)
 	fmt.Println("Time taken to solve :", time.Since(startTime))
+	fmt.Println()
 }
