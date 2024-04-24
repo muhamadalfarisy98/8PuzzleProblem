@@ -99,7 +99,7 @@ func (n Node) getAdjNode() []Node {
 			}
 			newState[emptyPosRow][emptyPosCol] = n.currentNode[newPosRow][newPosCol]
 			newState[newPosRow][newPosCol] = 0
-			listNode = append(listNode, Node{currentNode: newState, previousNode: n.currentNode, g: n.g + 1, h: euclideanCost(newState), dir: key})
+			listNode = append(listNode, Node{currentNode: newState, previousNode: n.currentNode, g: n.g + 1, h: manhattanDistanceCost(newState), dir: key})
 		}
 	}
 	return listNode
@@ -117,8 +117,8 @@ func getPos(currentState [][]int, element int) (int, int) {
 	return -1, -1
 }
 
-// euclideanCost - calculates total distance between current state and goal state
-func euclideanCost(currentState [][]int) int {
+// manhattanDistanceCost - calculates total distance between current state and goal state
+func manhattanDistanceCost(currentState [][]int) int {
 	cost := 0
 	for row := 0; row < len(currentState); row++ {
 		for col := 0; col < len(currentState[0]); col++ {
@@ -254,7 +254,7 @@ func main() {
 	startTime := time.Now()
 
 	// main logic
-	openSet := map[string]Node{fmt.Sprintf("%v", START): {currentNode: START, previousNode: START, g: 0, h: euclideanCost(START), dir: ""}}
+	openSet := map[string]Node{fmt.Sprintf("%v", START): {currentNode: START, previousNode: START, g: 0, h: manhattanDistanceCost(START), dir: ""}}
 	closedSet := make(map[string]Node)
 
 	for {
