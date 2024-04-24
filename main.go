@@ -8,7 +8,12 @@ import (
 
 var (
 	// Rules - matrix direction
-	DIRECTIONS = map[string][2]int{"U": {-1, 0}, "D": {1, 0}, "L": {0, -1}, "R": {0, 1}}
+	DIRECTIONS = map[string][2]int{
+		"U": {-1, 0},
+		"D": {1, 0},
+		"L": {0, -1},
+		"R": {0, 1},
+	}
 
 	UP    = "UP"
 	RIGHT = "RIGHT"
@@ -23,8 +28,17 @@ var (
 	}
 
 	// State space
-	START = [][]int{{1, 0, 2}, {4, 5, 3}, {7, 8, 6}}
-	END   = [][]int{{1, 2, 3}, {4, 5, 6}, {7, 8, 0}}
+	START = [][]int{
+		{1, 0, 2},
+		{4, 5, 3},
+		{7, 8, 6},
+	}
+
+	END = [][]int{
+		{1, 2, 3},
+		{4, 5, 6},
+		{7, 8, 0},
+	}
 
 	// unicode for draw puzzle in command prompt or terminal
 	// source : https://pkg.go.dev/github.com/appgate-sdp-int/tabulate#section-readme (grid format)
@@ -175,6 +189,7 @@ func printPuzzle(array [][]int) {
 
 func main() {
 	fmt.Println("--- Welcome to 8 Puzzle Problem Solver ---")
+	fmt.Println()
 	fmt.Println("Predefined start space :", START)
 	fmt.Println("Predefined goal space :", END)
 	fmt.Println()
@@ -237,6 +252,8 @@ func main() {
 	}
 
 	startTime := time.Now()
+
+	// main logic
 	openSet := map[string]Node{fmt.Sprintf("%v", START): {currentNode: START, previousNode: START, g: 0, h: euclideanCost(START), dir: ""}}
 	closedSet := make(map[string]Node)
 
@@ -280,10 +297,10 @@ func main() {
 		}
 		fmt.Println(firstLine)
 
-		// di casting karna dia interface
 		printPuzzle(b["node"].([][]int))
 		fmt.Println()
 	}
+
 	fmt.Println(boldText, "-- Achieved Goal State --")
 	fmt.Println("Total steps:", len(br)-1)
 	fmt.Println("Time taken to solve :", time.Since(startTime))
