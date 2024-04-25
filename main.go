@@ -90,6 +90,7 @@ func (n Node) getAdjNode() []Node {
 	emptyPosRow, emptyPosCol := getPos(n.currentNode, 0)
 
 	for key, direction := range DIRECTIONS {
+		// define pointer of new replaced zero (empty) tile based on direction value
 		newPosRow, newPosCol := emptyPosRow+direction[0], emptyPosCol+direction[1]
 		if newPosRow >= 0 && newPosRow < len(n.currentNode) && newPosCol >= 0 && newPosCol < len(n.currentNode[0]) {
 			newState := make([][]int, len(n.currentNode))
